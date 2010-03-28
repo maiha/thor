@@ -25,7 +25,14 @@ class Thor
     # usage<String>
     # description<String>
     #
-    def desc(usage, description, options={})
+    def desc(*args)
+      options = args.last.is_a?(Hash) ? args.pop : {}
+      if args.size == 1
+        usage, description = nil, args[0]
+      else
+        usage, description = args[0], args[1]
+      end
+
       if options[:for]
         task = find_and_refresh_task(options[:for])
         task.usage = usage             if usage
@@ -203,9 +210,30 @@ class Thor
         Thor
       end
 
+      # Complete usage information for the given method via get_args.
+      # If @desc is not set or get_args is not installed, returns nil.
+      #
+      def usage_for(meth) #:nodoc:
+        return nil unless @desc
+
+        if get_args_loaded?
+          usage = meth.to_s
+          args  = instance_method(meth).get_args[0].map{|a|
+            name = a[0].to_s.upcase
+            name << " = #{a[1].inspect}" if a.size == 2
+            name
+          }
+          usage += " " + args.join(", ") unless args.empty?
+          return usage
+        else
+          return nil
+        end
+      end
+
       def create_task(meth) #:nodoc:
-        if @usage && @desc
-          tasks[meth.to_s] = Thor::Task.new(meth, @desc, @usage, method_options)
+        usage = @usage || usage_for(meth)
+        if usage && @desc
+          tasks[meth.to_s] = Thor::Task.new(meth, @desc, usage, method_options)
           @usage, @desc, @method_options = nil
           true
         elsif self.all_tasks[meth.to_s] || meth.to_sym == :method_missing
@@ -231,6 +259,22 @@ class Thor
         meth = mapping || meth || default_task
         meth.to_s.gsub('-','_') # treat foo-bar > foo_bar
       end
+
+      # Check if GetArgs is loaded. If it is, use it to complete usage from it.
+      #
+      def get_args_loaded? #:nodoc:
+        return true  if defined?(GetArgs)
+        return @get_args_loaded unless @get_args_loaded.nil?
+
+        @get_args_loaded = begin
+          require 'get_args'
+          true
+        rescue LoadError
+          $stderr.puts "You need to install get_args to use usage-completions. Use 'gem install get_args'"
+          false
+        end
+      end
+
   end
 
   include Thor::Base

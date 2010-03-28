@@ -75,6 +75,13 @@ describe Thor do
         capture(:stdout) { MyChildScript.start(["help"]) }.must =~ /animal KIND \s+# fish around/m
       end
     end
+
+    describe "when usage is not supplied" do
+      it "complete usage from source" do
+        capture(:stdout) { MyScript.start(["help"]) }.must =~
+          /console ENV = "development"   # Open console via irb/m
+      end
+    end
   end
 
   describe "#method_options" do
