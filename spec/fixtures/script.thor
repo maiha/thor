@@ -65,11 +65,6 @@ END
     [ name, options ]
   end
 
-  desc "Open console via irb"
-  def console(env = 'development')
-    # system("ruby script/console #{env}")
-  end
-
   class AnotherScript < Thor
     desc "baz", "do some bazing"
     def baz
